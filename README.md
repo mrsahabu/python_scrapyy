@@ -9,5 +9,4 @@ https://pypi.org/project/find-job-titles//
 
 To get location from text, used python GeoText package. Install package from here https://geotext.readthedocs.io/en/latest/installation.html.
 
-To run the script add all files in your root directory
-  python htmlparser.py 
+To run the script add all files in your root directory  "python htmlparser.py" 
