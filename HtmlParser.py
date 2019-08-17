@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Aug 17 01:20:42 2019
 
-@author: sahab
-"""
 import argparse
 import requests
 from bs4 import BeautifulSoup 
@@ -12,6 +6,25 @@ from find_job_titles import Finder
 from geotext import GeoText
 import sqlite3
 
+def run(args):
+    main = Main(args)
+    url = main.get_url(args.url)
+    content = main.make_http_request(url)
+    scrapper =  HtmlParser(content,args.debug)
+    scrapper.read_job_titles_file(args.file_name)
+    scrapper.find_all_links()
+    scrapper.get_information()
+    model = Model(args.db_name,args.debug)
+    last_row = model.get_latest_job(args.db_name)
+    latest_row = scrapper.scraped_list[-1]
+    if len(last_row) != 0:
+        if   last_row [0][1] == latest_row[0] and last_row [0][2] == latest_row[1] and last_row [0][3] == latest_row[2]:
+               print('No new entry')
+    else:  
+        for row in scrapper.scraped_list:
+            model.insert_jobs(row[0],row[1],row[2],args.db_name)
+            
+    print('Finised')
 
 class HtmlParser():
     def __init__(self,url,debug):
@@ -46,7 +59,7 @@ class HtmlParser():
         if len(location.cities) > 0:
             location = location.cities[0]
         else:
-            location = None
+            location = 'None'
         return location    
        
     def get_company(self,strr):
@@ -133,18 +146,20 @@ class Main():
     def __init__(self,args):
         self.debug = args.debug
         self.db_name = args.db_name
-        self.url = self.get_url(args.url)
+        self.url= ""
+
         
     def get_url(self,path_to_file):
+          url = ""  
           try:
             f = open(path_to_file,'r')
-            self.url = f.read()
-            self.url = self.url.split()
+            url = f.read()
+            self.url=url[:url.index("\n")]
             f.close()
+            return self.url
+
           except:
             print('url file not found')
- 
-          return self.url[0]         
     def make_http_request(self,url):
         request = requests.get(url)
         if self.debug:
@@ -156,7 +171,8 @@ class Main():
             print('Http error')
 
     
- 
+
+
  
     
 if __name__ == "__main__":
@@ -169,20 +185,4 @@ if __name__ == "__main__":
                     help="file contains url")
     parser.add_argument("-d", "--debug", default=False)
     args = parser.parse_args()
-
-    main = Main(args)
-    url = main.get_url(args.url)
-    content = main.make_http_request(url)
-    scrapper =  HtmlParser(content,args.debug)
-    scrapper.read_job_titles_file(args.file_name)
-    scrapper.find_all_links()
-    scrapper.get_information()
-    model = Model(args.db_name,args.debug)
-    latest_row = model.get_latest_job(args.db_name)
-    for row in scrapper.scraped_list:
-       if len(latest_row) == 0:
-            model.insert_jobs(row[0],row[1],row[2],args.db_name)
-       elif row[0] != latest_row[0] and row[1] != latest_row[1] and row[2] != latest_row[2]:
-            model.insert_jobs(row[0],row[1],row[2],args.db_name)
-            
-    print('Finised') 
+    run(args)
