@@ -13,17 +13,18 @@ from geotext import GeoText
 import sqlite3
 
 def run(args):
-    main = Main(args)
-    url = main.get_url(args.url)
-    content = main.make_http_request(url)
-    scrapper =  HtmlParser(content,args.debug)
-    scrapper.read_job_titles_file(args.file_name)
-    scrapper.find_all_links()
-    scrapper.get_information()
+    scrapper = Scrapper(args)
+    url = scrapper.get_url(args.url)
+    content = scrapper.make_http_request(url)
+    parser =  HtmlParser(content,args.debug)
+    parser.read_job_titles_file(args.file_name)
+    parser.find_all_links()
+    parser.get_information()
+    
     model = Model(args.db_name,args.debug)
     all_data = model.get_all_jobs(args.db_name)
-    tupled_list = [tuple(el) for el in scrapper.scraped_list]
-    new_rows = scrapper.get_uncommon(all_data,tupled_list)
+    tupled_list = [tuple(el) for el in parser.scraped_list]
+    new_rows = parser.get_uncommon(all_data,tupled_list)
     for row in new_rows:
         model.insert_jobs(row[0],row[1],row[2],args.db_name)
     all_data = model.get_all_jobs(args.db_name)        
@@ -153,7 +154,7 @@ class Model:
             print('Get latest job error')            
         return row
 
-class Main():
+class Scrapper():
     def __init__(self,args):
         self.debug = args.debug
         self.db_name = args.db_name
@@ -172,7 +173,7 @@ class Main():
           except:
             print('url file not found')
     def make_http_request(self,url):
-        request = requests.get(url)
+        request = requests.get(url,timeout=10)
         if self.debug:
             print('Request status code: {}'.format(request.status_code))
         if request.status_code == 200:
