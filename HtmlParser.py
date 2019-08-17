@@ -1,4 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Aug 17 01:20:42 2019
 
+@author: sahab
+"""
 import argparse
 import requests
 from bs4 import BeautifulSoup 
@@ -186,3 +192,4 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", default=False)
     args = parser.parse_args()
     run(args)
+       
