@@ -21,16 +21,16 @@ def run(args):
     scrapper.find_all_links()
     scrapper.get_information()
     model = Model(args.db_name,args.debug)
-    last_row = model.get_latest_job(args.db_name)
-    latest_row = scrapper.scraped_list[-1]
-    if len(last_row) != 0:
-        if   last_row [0][1] == latest_row[0] and last_row [0][2] == latest_row[1] and last_row [0][3] == latest_row[2]:
-               print('No new entry')
-    else:  
-        for row in scrapper.scraped_list:
-            model.insert_jobs(row[0],row[1],row[2],args.db_name)
-            
-    print('Finised')
+    all_data = model.get_all_jobs(args.db_name)
+    tupled_list = [tuple(el) for el in scrapper.scraped_list]
+    new_rows = scrapper.get_uncommon(all_data,tupled_list)
+    for row in new_rows:
+        model.insert_jobs(row[0],row[1],row[2],args.db_name)
+    all_data = model.get_all_jobs(args.db_name)        
+    print('{}'.format(all_data)) 
+    print('Finised...Total No of Rows stored {}'.format(len(new_rows)))
+    
+
 
 class HtmlParser():
     def __init__(self,url,debug):
@@ -88,6 +88,10 @@ class HtmlParser():
                job_name = None
        return job_name  
 
+    def get_uncommon(self,all_data,tupled_list):
+        set_db_data = set(all_data)
+        set_tupled_list= set(tupled_list)
+        return list(set_tupled_list - set_db_data)
 
 class Model:
     def __init__(self,db_name,debug):
@@ -102,6 +106,7 @@ class Model:
             cursor.execute('''CREATE TABLE IF NOT EXISTS
                               jobs(id INTEGER PRIMARY KEY, name TEXT, title TEXT, location TEXT)''')
             db.commit()
+   
               
         except Exception as e:
             db.rollback()
@@ -131,7 +136,7 @@ class Model:
     def get_all_jobs(self,db_name):
         try:
             db,cursor = self.get_db_connection(db_name)
-            cursor.execute('SELECT * FROM jobs')
+            cursor.execute('SELECT name,title,location FROM jobs')
         except:
             print('Get all jobs error')
         return cursor.fetchall()
